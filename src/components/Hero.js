@@ -26,7 +26,7 @@ const socialLinks = [
   { icon: 'ph-github-logo', href: '#', label: 'GitHub' },
 ];
 
-export default function Hero() {
+export default function Hero({ onOpenAuth }) {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [logs, setLogs] = useState({ 2: false, 3: false });
@@ -72,6 +72,9 @@ export default function Hero() {
       setTimeout(() => {
         setIsGenerating(false);
         setPrompt('');
+        if (onOpenAuth) {
+          onOpenAuth('signup');
+        }
       }, 2500);
     }, 2400);
   };
@@ -153,7 +156,7 @@ export default function Hero() {
         initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 1, ease: "easeOut" }}
-        className="relative z-20 w-full pt-10 pb-4 px-8 md:px-16 flex justify-between items-center mix-blend-difference"
+        className="relative z-20 w-full pt-10 pb-4 px-8 md:px-16 flex justify-between items-center"
       >
         <div className="flex items-center gap-3 cursor-pointer">
           <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
@@ -165,9 +168,12 @@ export default function Hero() {
           <a href="#page-4" className="text-[10px] uppercase tracking-widest-lux font-mono text-gray-400 hover:text-white transition-colors">Pricing</a>
         </div>
         <div>
-          <a href="#page-1" className="text-[11px] uppercase tracking-widest-lux font-medium text-white px-6 py-3 rounded-full border border-white/10 hover:bg-white hover:text-black transition-all duration-300">
+          <button
+            onClick={() => onOpenAuth && onOpenAuth('signin')}
+            className="text-[11px] uppercase tracking-widest-lux font-medium text-white px-6 py-3 rounded-full border border-white/10 hover:bg-white hover:text-black transition-all duration-300 cursor-pointer"
+          >
             Sign In
-          </a>
+          </button>
         </div>
       </motion.nav>
 

@@ -1,7 +1,7 @@
 "use client";
 import { motion } from 'framer-motion';
 
-export default function Pricing() {
+export default function Pricing({ onOpenAuth }) {
   const containerVariants = {
     hidden: {},
     visible: {
@@ -69,7 +69,10 @@ export default function Pricing() {
                 <li className="flex items-start gap-3"><i className="ph-light ph-check text-dark-pink mt-1"></i> Standard Integrations</li>
               </ul>
               
-              <button className="w-full py-4 border border-white/10 rounded-xl text-white font-medium text-xs tracking-wide hover:bg-white hover:text-black transition-colors duration-300">
+              <button
+                onClick={() => onOpenAuth && onOpenAuth('signup')}
+                className="w-full py-4 border border-white/10 rounded-xl text-white font-medium text-xs tracking-wide hover:bg-white hover:text-black transition-colors duration-300 cursor-pointer"
+              >
                 Deploy Free
               </button>
             </div>
@@ -97,7 +100,10 @@ export default function Pricing() {
                 <li className="flex items-start gap-3"><i className="ph-light ph-check text-dark-pink mt-1"></i> Priority Support & Deep Logs</li>
               </ul>
               
-              <button className="w-full py-4 bg-white text-black rounded-xl font-medium text-xs tracking-wide hover:bg-dark-pink hover:text-white transition-colors duration-300">
+              <button
+                onClick={() => onOpenAuth && onOpenAuth('signup')}
+                className="w-full py-4 bg-white text-black rounded-xl font-medium text-xs tracking-wide hover:bg-dark-pink hover:text-white transition-colors duration-300 cursor-pointer"
+              >
                 Upgrade Instance
               </button>
             </div>
@@ -118,7 +124,10 @@ export default function Pricing() {
                 <li className="flex items-start gap-3"><i className="ph-light ph-check text-dark-pink mt-1"></i> SSO, SOC2 & Advanced Security</li>
               </ul>
               
-              <button className="w-full py-4 border border-white/10 rounded-xl text-white font-medium text-xs tracking-wide hover:bg-white hover:text-black transition-colors duration-300">
+              <button
+                onClick={() => onOpenAuth && onOpenAuth('signin')}
+                className="w-full py-4 border border-white/10 rounded-xl text-white font-medium text-xs tracking-wide hover:bg-white hover:text-black transition-colors duration-300 cursor-pointer"
+              >
                 Contact Sales
               </button>
             </div>
