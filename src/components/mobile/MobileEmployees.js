@@ -1,8 +1,9 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const EMPLOYEES = [
+const BASE_EMPLOYEES = [
   {
     id: 'emp-1',
     name: 'Maya',
@@ -42,8 +43,42 @@ const EMPLOYEES = [
 ];
 
 export default function MobileEmployees({ onOpenAuth }) {
+  const [employees, setEmployees] = useState(BASE_EMPLOYEES);
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const activeEmp = EMPLOYEES[selectedIdx];
+
+  useEffect(() => {
+    try {
+      const customEmpsStr = localStorage.getItem('lolo_custom_employees');
+      const singleEmpStr = localStorage.getItem('lolo_new_employee');
+      let customList = [];
+      if (customEmpsStr) {
+        const parsed = JSON.parse(customEmpsStr);
+        if (Array.isArray(parsed)) customList = parsed;
+      }
+      if (singleEmpStr) {
+        const single = JSON.parse(singleEmpStr);
+        if (!customList.some(e => e.id === single.id)) {
+          customList = [single, ...customList];
+        }
+      }
+
+      if (customList.length > 0) {
+        setEmployees(prev => {
+          const combined = [...customList];
+          prev.forEach(p => {
+            if (!combined.some(c => c.id === p.id)) {
+              combined.push(p);
+            }
+          });
+          return combined;
+        });
+      }
+    } catch (e) {
+      console.error('Error loading custom employees on mobile:', e);
+    }
+  }, []);
+
+  const activeEmp = employees[selectedIdx] || employees[0] || BASE_EMPLOYEES[0];
 
   return (
     <section id="mobile-workspaces" className="px-4 py-8 bg-[#0a0a0a] border-t border-white/5">
@@ -66,7 +101,7 @@ export default function MobileEmployees({ onOpenAuth }) {
 
         {/* Employee Selector Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {EMPLOYEES.map((emp, idx) => (
+          {employees.map((emp, idx) => (
             <button
               key={emp.id}
               onClick={() => setSelectedIdx(idx)}
@@ -130,7 +165,7 @@ export default function MobileEmployees({ onOpenAuth }) {
               <span className="text-[9px] font-mono uppercase tracking-widest text-gray-500 block">
                 Deployed Micro-Agents:
               </span>
-              {activeEmp.agents.map((ag, i) => (
+              {(activeEmp.agents || []).map((ag, i) => (
                 <div
                   key={i}
                   className="bg-black/60 border border-white/5 rounded-xl p-2.5 flex items-center justify-between"
@@ -142,7 +177,7 @@ export default function MobileEmployees({ onOpenAuth }) {
                         {ag.name}
                       </span>
                       <span className="text-[10px] text-gray-400">
-                        Trigger: {ag.trigger}
+                        Trigger: {ag.trigger || 'Webhook Trigger'}
                       </span>
                     </div>
                   </div>
@@ -151,26 +186,30 @@ export default function MobileEmployees({ onOpenAuth }) {
                   </span>
                 </div>
               ))}
+              {(!activeEmp.agents || activeEmp.agents.length === 0) && (
+                <div className="bg-black/40 border border-white/5 rounded-xl p-2.5 text-center text-xs text-gray-500">
+                  Ready to deploy micro-agents in workspace
+                </div>
+              )}
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons: Name Workspace & See More */}
             <div className="flex items-center gap-2 relative z-10 pt-1">
-              <button
-                type="button"
-                onClick={() => onOpenAuth && onOpenAuth('signup')}
-                className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold hover:bg-[#FF005C] hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+              <Link
+                href={`/dashboard?nav=workspace-detail&emp=${activeEmp.id}`}
+                className="flex-1 py-2.5 rounded-xl bg-[#2a2a2a] text-white hover:bg-white hover:text-black text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-[#3a3a3a]"
               >
-                <span>Deploy {activeEmp.name}</span>
-                <i className="ph-bold ph-arrow-right text-xs"></i>
-              </button>
+                <i className="ph-bold ph-briefcase text-xs text-[#FF005C]"></i>
+                <span>{activeEmp.name} Workspace</span>
+              </Link>
 
-              <button
-                type="button"
-                onClick={() => onOpenAuth && onOpenAuth('signup')}
-                className="px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-medium hover:bg-white/10 transition-colors cursor-pointer"
+              <Link
+                href="/dashboard?nav=ai-agents"
+                className="flex-1 py-2.5 rounded-xl bg-white text-black hover:bg-[#FF005C] hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
               >
-                Inspect Flow
-              </button>
+                <span>See More</span>
+                <i className="ph-bold ph-arrow-right text-xs"></i>
+              </Link>
             </div>
           </motion.div>
         </AnimatePresence>

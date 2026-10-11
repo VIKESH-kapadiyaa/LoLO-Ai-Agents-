@@ -54,7 +54,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }) {
   const [agreeTerms, setAgreeTerms] = useState(false);
 
   // Form State - AI Employee Onboarding Step
-  const [empName, setEmpName] = useState('Maya');
+  const [empName, setEmpName] = useState('');
   const [empRole, setEmpRole] = useState(OFFICE_ROLES[0]);
   const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_POOL[0]);
   const [avatarOffset, setAvatarOffset] = useState(0);
@@ -70,7 +70,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }) {
       setIsLoading(false);
       setIsEmpSuccess(false);
       setIsEmpLoading(false);
-      setEmpName('Maya');
+      setEmpName('');
       setEmpRole(OFFICE_ROLES[0]);
       setSelectedAvatar(AVATAR_POOL[0]);
     }
@@ -127,6 +127,9 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }) {
         setIsSuccess(true);
         setTimeout(() => {
           setIsSuccess(false);
+          if (signUpFname && signUpFname.trim() && !empName) {
+            setEmpName(`${signUpFname.trim()}'s Agent`);
+          }
           setModalStep('create-employee');
         }, 700);
       }, 1000);
@@ -168,20 +171,20 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }) {
   // Create AI Employee submit
   const handleEmployeeSubmit = (e) => {
     e.preventDefault();
-    if (!empName.trim()) return;
+    const finalName = empName.trim() || 'Custom AI Employee';
 
     setIsEmpLoading(true);
 
     const newEmp = {
       id: `emp-${Date.now()}`,
-      name: empName.trim(),
+      name: finalName,
       role: empRole,
       avatar: selectedAvatar,
       status: 'Active',
       agents: [
         {
           id: `ag-${Date.now()}-1`,
-          name: `${empName.trim()} Task Dispatcher`,
+          name: `${finalName} Task Dispatcher`,
           trigger: 'Automated Event Trigger',
           status: 'Running',
           executions: '1'
@@ -195,6 +198,11 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }) {
 
       try {
         localStorage.setItem('lolo_new_employee', JSON.stringify(newEmp));
+        const customEmpsStr = localStorage.getItem('lolo_custom_employees');
+        const existing = customEmpsStr ? JSON.parse(customEmpsStr) : [];
+        if (!existing.some(e => e.id === newEmp.id)) {
+          localStorage.setItem('lolo_custom_employees', JSON.stringify([newEmp, ...existing]));
+        }
         localStorage.setItem('lolo_active_nav', 'ai-employees');
       } catch (err) {
         console.error('Failed to store new AI employee:', err);

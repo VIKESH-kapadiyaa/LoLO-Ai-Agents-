@@ -61,6 +61,7 @@ export default function DashboardPage() {
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
   const [chatLoading, setChatLoading] = useState(false);
+  const [workspaceViewTab, setWorkspaceViewTab] = useState('chat');
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -71,20 +72,43 @@ export default function DashboardPage() {
   useEffect(() => {
     try {
       const storedEmp = localStorage.getItem('lolo_new_employee');
+      const customEmpsStr = localStorage.getItem('lolo_custom_employees');
       const storedNav = localStorage.getItem('lolo_active_nav');
       const searchParams = new URLSearchParams(window.location.search);
       const navParam = searchParams.get('nav');
 
+      let customList = [];
+      if (customEmpsStr) {
+        try {
+          const parsed = JSON.parse(customEmpsStr);
+          if (Array.isArray(parsed)) customList = parsed;
+        } catch (e) {}
+      }
+
       if (storedEmp) {
-        const parsedEmp = JSON.parse(storedEmp);
-        setAiEmployees(prev => {
-          if (prev.some(e => e.id === parsedEmp.id)) return prev;
-          return [parsedEmp, ...prev];
-        });
-        localStorage.removeItem('lolo_new_employee');
-        setActiveNav('ai-employees');
+        try {
+          const parsedEmp = JSON.parse(storedEmp);
+          if (!customList.some(e => e.id === parsedEmp.id)) {
+            customList = [parsedEmp, ...customList];
+            localStorage.setItem('lolo_custom_employees', JSON.stringify(customList));
+          }
+          localStorage.removeItem('lolo_new_employee');
+          setActiveNav('ai-employees');
+        } catch (e) {}
       } else if (navParam === 'ai-employees' || storedNav === 'ai-employees') {
         setActiveNav('ai-employees');
+      }
+
+      if (customList.length > 0) {
+        setAiEmployees(prev => {
+          const combined = [...customList];
+          prev.forEach(p => {
+            if (!combined.some(c => c.id === p.id)) {
+              combined.push(p);
+            }
+          });
+          return combined;
+        });
       }
 
       if (storedNav) {
@@ -188,6 +212,11 @@ export default function DashboardPage() {
     };
 
     setAiEmployees([newEmp, ...aiEmployees]);
+    try {
+      const customEmpsStr = localStorage.getItem('lolo_custom_employees');
+      const existing = customEmpsStr ? JSON.parse(customEmpsStr) : [];
+      localStorage.setItem('lolo_custom_employees', JSON.stringify([newEmp, ...existing]));
+    } catch (err) {}
     setNewEmpName('');
     setIsEmployeeModalOpen(false);
     setActiveNav('ai-employees');
@@ -335,14 +364,14 @@ export default function DashboardPage() {
         {mobileSidebarOpen && (
           <div
             onClick={() => setMobileSidebarOpen(false)}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 md:hidden"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden"
           />
         )}
 
         {/* SIDEBAR (Pinned Sticky Sidebar) */}
         <aside
-          className={`w-64 bg-[#141414] border-r border-[#2a2a2a] flex flex-col justify-between shrink-0 h-screen sticky top-0 overflow-y-auto z-40 transition-all duration-300 ${
-            mobileSidebarOpen ? 'fixed inset-y-0 left-0 flex' : sidebarOpen ? 'hidden md:flex' : 'hidden'
+          className={`w-64 bg-[#141414] border-r border-[#2a2a2a] flex flex-col justify-between shrink-0 h-screen sticky top-0 overflow-y-auto transition-all duration-300 ${
+            mobileSidebarOpen ? 'fixed inset-y-0 left-0 flex z-50 shadow-2xl' : sidebarOpen ? 'hidden md:flex z-30' : 'hidden'
           }`}
         >
           <div className="p-4">
@@ -357,7 +386,7 @@ export default function DashboardPage() {
                   <i className="fa-solid fa-house"></i>
                 </Link>
                 {mobileSidebarOpen && (
-                  <button onClick={() => setMobileSidebarOpen(false)} className="md:hidden text-gray-400 hover:text-white">
+                  <button onClick={() => setMobileSidebarOpen(false)} className="md:hidden text-gray-400 hover:text-white cursor-pointer">
                     <i className="fa-solid fa-xmark text-base"></i>
                   </button>
                 )}
@@ -400,15 +429,32 @@ export default function DashboardPage() {
                 </span>
               </button>
 
-              <a href="#" onClick={(e) => e.preventDefault()} className="flex items-center gap-3 px-3 py-2 text-sm text-[#8b8b8b] hover:text-white rounded-md transition-colors">
+              <button
+                onClick={() => { setActiveNav('workflows'); setMobileSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors text-left cursor-pointer ${
+                  activeNav === 'workflows' ? 'text-white bg-[#2a2a2a] font-medium' : 'text-[#8b8b8b] hover:text-white'
+                }`}
+              >
                 <i className="fa-solid fa-sitemap w-4 text-center"></i> Workflows
-              </a>
-              <a href="#" onClick={(e) => e.preventDefault()} className="flex items-center gap-3 px-3 py-2 text-sm text-[#8b8b8b] hover:text-white rounded-md transition-colors">
+              </button>
+
+              <button
+                onClick={() => { setActiveNav('analytics'); setMobileSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors text-left cursor-pointer ${
+                  activeNav === 'analytics' ? 'text-white bg-[#2a2a2a] font-medium' : 'text-[#8b8b8b] hover:text-white'
+                }`}
+              >
                 <i className="fa-solid fa-chart-line w-4 text-center"></i> Analytics
-              </a>
-              <a href="#" onClick={(e) => { e.preventDefault(); setActiveNav('integrations'); setMobileSidebarOpen(false); }} className={`flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${activeNav === 'integrations' ? 'text-white bg-[#2a2a2a] font-medium' : 'text-[#8b8b8b] hover:text-white'}`}>
+              </button>
+
+              <button
+                onClick={() => { setActiveNav('integrations'); setMobileSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors text-left cursor-pointer ${
+                  activeNav === 'integrations' ? 'text-white bg-[#2a2a2a] font-medium' : 'text-[#8b8b8b] hover:text-white'
+                }`}
+              >
                 <i className="fa-solid fa-link w-4 text-center"></i> Integrations
-              </a>
+              </button>
             </nav>
 
             {/* Task 2: Manage Section removed as requested */}
@@ -444,18 +490,22 @@ export default function DashboardPage() {
         <main className="flex-1 min-w-0 min-h-screen bg-[#0f0f0f] relative">
           
           {/* Top Header (Sticky Top) */}
-          <header className="sticky top-0 min-h-16 py-2 border-b border-[#2a2a2a] flex items-center justify-between px-6 shrink-0 bg-[#0f0f0f]/95 backdrop-blur-md z-30">
+          <header className="sticky top-0 min-h-16 py-2 border-b border-[#2a2a2a] flex items-center justify-between px-4 sm:px-6 shrink-0 bg-[#0f0f0f]/95 backdrop-blur-md z-30">
             <div className="flex items-center gap-3 text-[#8b8b8b] text-sm">
-              <i
+              <button
+                type="button"
                 onClick={() => {
-                  if (window.innerWidth < 768) {
-                    setMobileSidebarOpen(!mobileSidebarOpen);
+                  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                    setMobileSidebarOpen(prev => !prev);
                   } else {
                     setSidebarOpen(prev => !prev);
                   }
                 }}
-                className="fa-solid fa-bars cursor-pointer hover:text-white text-base transition-colors"
-              />
+                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 cursor-pointer"
+                aria-label="Toggle Navigation"
+              >
+                <i className="fa-solid fa-bars text-sm" />
+              </button>
               <div>
                 <span className="text-white font-semibold text-base block leading-tight">
                   {activeNav === 'ai-employees'
@@ -466,6 +516,10 @@ export default function DashboardPage() {
                     ? `${aiEmployees.find(e => e.id === selectedWorkspaceId)?.name || 'Employee'} Workspace`
                     : activeNav === 'integrations'
                     ? 'Integrations Hub'
+                    : activeNav === 'workflows'
+                    ? 'Autonomous Workflows'
+                    : activeNav === 'analytics'
+                    ? 'Execution Analytics'
                     : 'Dashboard'}
                 </span>
                 {activeNav === 'ai-employees' && (
@@ -483,22 +537,69 @@ export default function DashboardPage() {
                     Dedicated workspace control panel, execution telemetry, and assigned agents.
                   </p>
                 )}
+                {activeNav === 'workflows' && (
+                  <p className="text-xs text-[#8b8b8b] font-light mt-0.5">
+                    Real-time pipeline orchestrations and automated event execution.
+                  </p>
+                )}
+                {activeNav === 'analytics' && (
+                  <p className="text-xs text-[#8b8b8b] font-light mt-0.5">
+                    Latency, compute allocation, and autonomous throughput telemetry.
+                  </p>
+                )}
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
-              <i className="fa-regular fa-bell text-[#8b8b8b] hover:text-white cursor-pointer"></i>
-              <i className="fa-solid fa-rotate-right text-[#8b8b8b] hover:text-white cursor-pointer"></i>
+            <div className="flex items-center gap-2 sm:gap-4">
+              <i className="fa-regular fa-bell text-[#8b8b8b] hover:text-white cursor-pointer hidden sm:block"></i>
+              <i className="fa-solid fa-rotate-right text-[#8b8b8b] hover:text-white cursor-pointer hidden sm:block"></i>
               
               {/* Trigger: Create AI Employee */}
               <button
                 onClick={() => { shuffleAvatar(); setIsEmployeeModalOpen(true); }}
-                className="bg-white text-black text-xs font-semibold px-3.5 py-1.5 rounded-lg flex items-center gap-2 hover:bg-[#FF005C] hover:text-white transition-all cursor-pointer shadow-md"
+                className="bg-white text-black text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-[#FF005C] hover:text-white transition-all cursor-pointer shadow-md"
               >
-                <i className="fa-solid fa-user-plus text-xs"></i> Create AI Employee
+                <i className="fa-solid fa-user-plus text-[11px]"></i>
+                <span className="hidden xs:inline sm:inline">Create</span>
+                <span>AI Employee</span>
               </button>
             </div>
           </header>
+
+          {/* Mobile Quick Section Tabs (Allows 1-tap switching between all sections on mobile) */}
+          <div className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-[#141414] border-b border-[#2a2a2a] overflow-x-auto scrollbar-none sticky top-[65px] z-20">
+            {[
+              { id: 'ai-employees', label: 'AI Employees', icon: 'fa-user-gear', count: aiEmployees.length },
+              { id: 'ai-agents', label: 'AI Agents', icon: 'fa-robot', count: aiEmployees.reduce((acc, emp) => acc + emp.agents.length, 0) },
+              { id: 'dashboard', label: 'Dashboard', icon: 'fa-border-all' },
+              { id: 'integrations', label: 'Integrations', icon: 'fa-link', count: integrationsList.length },
+              { id: 'workflows', label: 'Workflows', icon: 'fa-sitemap' },
+              { id: 'analytics', label: 'Analytics', icon: 'fa-chart-line' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveNav(tab.id);
+                  setMobileSidebarOpen(false);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+                  activeNav === tab.id
+                    ? 'bg-white text-black font-semibold shadow-md'
+                    : 'bg-white/5 text-[#8b8b8b] hover:text-white border border-white/5'
+                }`}
+              >
+                <i className={`fa-solid ${tab.icon} text-[10px]`}></i>
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono ${
+                    activeNav === tab.id ? 'bg-black/20 text-black font-bold' : 'bg-[#FF005C]/20 text-[#FF005C]'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
 
           {/* View Area Content (with pb-32 bottom space for comfortable scrolling) */}
           <div className="p-4 md:p-6 pb-32 space-y-5">
@@ -638,11 +739,33 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
+                  {/* Mobile 3-Panel Switcher */}
+                  <div className="md:hidden flex items-center justify-around bg-[#0a0a0a] border-b border-[#2a2a2a] px-2 py-1.5 shrink-0 text-xs font-mono">
+                    <button
+                      onClick={() => setWorkspaceViewTab('chat')}
+                      className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${workspaceViewTab === 'chat' ? 'bg-[#FF005C]/20 text-[#FF005C] font-semibold border border-[#FF005C]/40' : 'text-[#8b8b8b]'}`}
+                    >
+                      <i className="fa-solid fa-terminal mr-1 text-[10px]"></i> Chat
+                    </button>
+                    <button
+                      onClick={() => setWorkspaceViewTab('browser')}
+                      className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${workspaceViewTab === 'browser' ? 'bg-violet-950/40 text-violet-400 font-semibold border border-violet-800/40' : 'text-[#8b8b8b]'}`}
+                    >
+                      <i className="fa-solid fa-globe mr-1 text-[10px]"></i> Browser
+                    </button>
+                    <button
+                      onClick={() => setWorkspaceViewTab('code')}
+                      className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${workspaceViewTab === 'code' ? 'bg-emerald-950/40 text-emerald-400 font-semibold border border-emerald-800/40' : 'text-[#8b8b8b]'}`}
+                    >
+                      <i className="fa-solid fa-code mr-1 text-[10px]"></i> Code
+                    </button>
+                  </div>
+
                   {/* 3-Panel Layout */}
                   <div className="flex flex-1 overflow-hidden">
 
                     {/* LEFT: Neural Chat Panel */}
-                    <div className="w-[30%] min-w-[240px] flex flex-col bg-[#080808] border-r border-[#2a2a2a] relative overflow-hidden">
+                    <div className={`w-full md:w-[30%] md:min-w-[240px] flex-col bg-[#080808] border-r border-[#2a2a2a] relative overflow-hidden ${workspaceViewTab === 'chat' ? 'flex' : 'hidden md:flex'}`}>
                       <div className="absolute top-0 left-0 w-full h-48 bg-[#FF005C]/5 rounded-full blur-[80px] pointer-events-none"></div>
 
                       {/* Panel Header */}
@@ -728,7 +851,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* MIDDLE: Live Execution Browser */}
-                    <div className="w-[35%] min-w-[280px] flex flex-col bg-[#050505] border-r border-[#2a2a2a] overflow-hidden">
+                    <div className={`w-full md:w-[35%] md:min-w-[280px] flex-col bg-[#050505] border-r border-[#2a2a2a] overflow-hidden ${workspaceViewTab === 'browser' ? 'flex' : 'hidden md:flex'}`}>
                       {/* Panel Header */}
                       <div className="flex items-center justify-between px-4 py-3 bg-[#0a0a0a] border-b border-[#2a2a2a] shrink-0">
                         <div className="flex items-center gap-2">
@@ -793,7 +916,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* RIGHT: Code / Logic Panel */}
-                    <div className="flex-1 flex flex-col bg-[#050505] overflow-hidden">
+                    <div className={`w-full md:flex-1 flex-col bg-[#050505] overflow-hidden ${workspaceViewTab === 'code' ? 'flex' : 'hidden md:flex'}`}>
                       {/* Panel Header */}
                       <div className="flex items-center justify-between px-4 py-3 bg-[#0a0a0a] border-b border-[#2a2a2a] shrink-0">
                         <div className="flex items-center gap-2">
@@ -1411,6 +1534,123 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* VIEW 4: WORKFLOWS */}
+            {activeNav === 'workflows' && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#2a2a2a]">
+                  <div>
+                    <h2 className="text-base font-semibold text-white">Autonomous Workflows</h2>
+                    <p className="text-xs text-[#8b8b8b]">Real-time pipeline orchestrations and automated event triggers across your SaaS stack.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2.5 py-1 rounded-full">
+                      ● 4 Active Pipelines
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { title: 'Inbound Lead Qualification & CRM Sync', trigger: 'Stripe & HubSpot Webhook', frequency: 'Real-time', status: 'Running', owner: 'Maya', agents: 2 },
+                    { title: 'SEO Blog Synthesis & Publishing', trigger: 'Weekly Monday Cron', frequency: 'Every 7 days', status: 'Scheduled', owner: 'Ethan', agents: 2 },
+                    { title: 'Customer Support SLA Auto-Escalation', trigger: 'Intercom Incoming Message', frequency: 'Real-time', status: 'Running', owner: 'Sarah', agents: 1 },
+                    { title: 'Financial Audit & Invoice Reconciliation', trigger: 'Daily Midnight Event', frequency: 'Every 24 hrs', status: 'Running', owner: 'Maya', agents: 1 }
+                  ].map((wf, idx) => (
+                    <div key={idx} className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex flex-col justify-between hover:border-[#FF005C]/40 transition-all shadow-md">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-mono uppercase bg-white/5 text-[#8b8b8b] px-2 py-0.5 rounded">
+                            {wf.frequency}
+                          </span>
+                          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-2 py-0.5 rounded">
+                            {wf.status}
+                          </span>
+                        </div>
+                        <h3 className="text-sm font-semibold text-white mb-1">{wf.title}</h3>
+                        <p className="text-xs text-[#8b8b8b] mb-3">Trigger: {wf.trigger}</p>
+                      </div>
+                      <div className="pt-3 border-t border-[#2a2a2a] flex items-center justify-between text-xs text-[#8b8b8b]">
+                        <span>Assigned to <strong className="text-white">{wf.owner}</strong></span>
+                        <span className="text-emerald-400 font-mono text-[11px]">{wf.agents} Agents Active</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* VIEW 5: ANALYTICS */}
+            {activeNav === 'analytics' && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#2a2a2a]">
+                  <div>
+                    <h2 className="text-base font-semibold text-white">Execution Analytics & Telemetry</h2>
+                    <p className="text-xs text-[#8b8b8b]">Latency, compute allocation, and autonomous throughput telemetry.</p>
+                  </div>
+                  <span className="text-xs font-mono text-purple-400 bg-purple-950/60 border border-purple-800/40 px-2.5 py-1 rounded-full">
+                    Telemetry Live
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4">
+                    <span className="text-xs text-[#8b8b8b] block mb-1">Total Executions</span>
+                    <span className="text-xl font-bold text-white">18,420</span>
+                    <span className="text-[10px] text-emerald-400 font-mono mt-1 block">+24% this month</span>
+                  </div>
+                  <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4">
+                    <span className="text-xs text-[#8b8b8b] block mb-1">Avg Response</span>
+                    <span className="text-xl font-bold text-[#FF005C]">38ms</span>
+                    <span className="text-[10px] text-emerald-400 font-mono mt-1 block">Global edge network</span>
+                  </div>
+                  <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4">
+                    <span className="text-xs text-[#8b8b8b] block mb-1">Accuracy SLA</span>
+                    <span className="text-xl font-bold text-white">99.8%</span>
+                    <span className="text-[10px] text-emerald-400 font-mono mt-1 block">Zero hallucination rate</span>
+                  </div>
+                  <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4">
+                    <span className="text-xs text-[#8b8b8b] block mb-1">Cost Efficiency</span>
+                    <span className="text-xl font-bold text-emerald-400">$14,200</span>
+                    <span className="text-[10px] text-gray-400 font-mono mt-1 block">Saved vs manual labor</span>
+                  </div>
+                </div>
+
+                {/* Performance Chart Card */}
+                <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4">
+                  <h3 className="text-sm font-semibold text-white mb-2">Throughput Distribution</h3>
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <div className="flex justify-between text-[#8b8b8b] mb-1">
+                        <span>Lead Qualification & SDR (Maya)</span>
+                        <span className="text-white">45%</span>
+                      </div>
+                      <div className="w-full h-2 bg-[#2a2a2a] rounded-full overflow-hidden">
+                        <div className="h-full bg-[#FF005C] rounded-full" style={{ width: '45%' }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[#8b8b8b] mb-1">
+                        <span>Content Strategy & SEO (Ethan)</span>
+                        <span className="text-white">35%</span>
+                      </div>
+                      <div className="w-full h-2 bg-[#2a2a2a] rounded-full overflow-hidden">
+                        <div className="h-full bg-violet-500 rounded-full" style={{ width: '35%' }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[#8b8b8b] mb-1">
+                        <span>Customer Support & Resolution (Sarah)</span>
+                        <span className="text-white">20%</span>
+                      </div>
+                      <div className="w-full h-2 bg-[#2a2a2a] rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: '20%' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
